@@ -1,7 +1,7 @@
 version: 0.2
 
 phases:
-   mkdir C:\newbuild:
+   mkdir: ‪C:\Users\SSS2020222\Desktop\newbuild
   build:
     commands:
       - powershell -ExecutionPolicy Bypass -File newbuild.ps1
