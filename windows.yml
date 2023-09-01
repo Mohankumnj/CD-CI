@@ -1,9 +1,7 @@
 version: 0.2
 
 phases:
-  install:
-    runtime-versions:
-      powershell: 7.0
+   mkdir C:\newbuild:
   build:
     commands:
-      - powershell -ExecutionPolicy Bypass -powershellfile.ps1
+      - powershell -ExecutionPolicy Bypass -File newbuild.ps1
