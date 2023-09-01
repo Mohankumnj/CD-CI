@@ -1,8 +1,8 @@
 version: 0.2
 
 phases:
-build:
-commands:
-  - echo "Hello, World!"
+  build:
+    commands:
+      - echo "Hello, World!"
 artifacts:
-  files: **/*
+  files: '**/*'
