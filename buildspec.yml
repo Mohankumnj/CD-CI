@@ -1,10 +1,9 @@
 version: 0.2
 
 phases:
-  install:
-    runtime-versions:
-      powershell: 7.0
   build:
     commands:
-      - powershell -ExecutionPolicy Bypass -File your_script.ps1
+      - echo "Hello, World!"
+artifacts:
+  files: '**/*'
 
