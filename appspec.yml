@@ -1,7 +1,6 @@
 version: 0.0
 os: windows
-
 hooks:
-  BeforeInstall:
-  - location: scripts/uploadts.ps1
-    timeout: 900
+  ApplicationStart:
+    - location: Scripts/uploadts.ps1
+      runas: administrator
