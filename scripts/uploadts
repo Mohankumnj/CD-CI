@@ -1,0 +1,2 @@
+# PowerShell script (CreateFile.ps1)
+New-Item -Path "C:‪\Users\SSS2020222\Desktop\testing.txt" -ItemType "file" -Force
