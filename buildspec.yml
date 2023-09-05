@@ -3,4 +3,4 @@ phases:
     commands:
       - echo "Hello, World!"
 artifacts:
-files: '**/*'
+  files: '**/*'
