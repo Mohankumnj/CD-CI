@@ -1,6 +1,7 @@
 version: 0.0
 os: windows
+
 hooks:
-  ApplicationStart:
-    - location: Scripts/uploadts.ps1
-      runas: administrator
+  BeforeInstall:
+  - location: scripts/uploadts.ps1
+    runas: administrator
