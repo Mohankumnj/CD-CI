@@ -1,2 +1,3 @@
 # PowerShell script (uploadts.ps1)
-New-Item -Path "C:‪\Users\SSS2020222\Desktop\testing.txt" -ItemType "file" -Force
+New-Item -Path "C:\Users\SSS2020222\Desktop\testing.txt" -ItemType "file" -Force
+
