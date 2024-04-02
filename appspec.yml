@@ -1,7 +1,5 @@
 version: 0.0
-os: windows
-
-hooks:
-  BeforeInstall:
-  - location: scripts/CreateFile.ps1
-    runas: administrator
+os: linux
+files:
+  - source: /
+    destination: /var/www/html/
