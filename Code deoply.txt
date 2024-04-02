@@ -1,0 +1,278 @@
+provider "aws" {
+  region = "us-east-1" // Change to your desired region
+}
+
+// Define IAM role for CodePipeline
+resource "aws_iam_role" "codepipeline_role" {
+  name = "codepipeline-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = {
+        Service = "codepipeline.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+
+  // Attach policies as needed for CodePipeline to function
+}
+
+// Define CodePipeline
+resource "aws_codepipeline" "example" {
+  name     = "example-pipeline"
+  role_arn = aws_iam_role.codepipeline_role.arn
+
+  artifact_store {
+    location = "us-east-1" // Change to your desired region
+    type     = "S3"
+  }
+
+  // Source stage
+  stage {
+    name = "Source"
+
+    action {
+      name             = "SourceAction"
+      category         = "Source"
+      owner            = "AWS"
+      provider         = "CodeStarSourceConnection"
+      version          = "1"
+      output_artifacts = ["source_output"]
+
+      configuration = {
+        ConnectionArn     = "arn:aws:codestar-connections:us-east-1:123456789012:connection/your-connection-arn"
+        FullRepositoryId = "owner/repo"
+        BranchName        = "main"
+        PollForSourceChanges = true
+      }
+    }
+  }
+
+  // Deploy stage
+  stage {
+    name = "Deploy"
+
+    action {
+      name            = "DeployAction"
+      category        = "Deploy"
+      owner           = "AWS"
+      provider        = "CodeDeploy"
+      input_artifacts = ["source_output"]
+      version         = "1"
+
+      configuration = {
+        ApplicationName          = ""
+        DeploymentGroupName      = "YourDeploymentGroupName"
+      }
+    }
+  }
+}
+
+// Define EC2 Instance
+resource "aws_instance" "example" {
+  ami           = "ami-0c7217cdde317cfec" // Replace with your desired AMI ID
+  instance_type = "t2.micro"     // Replace with your desired instance type
+
+  // Provisioner to deploy HTML files
+  provisioner "remote-exec" {
+    inline = [
+      "sudo yum install -y httpd",                    // Install Apache HTTP Server
+      "sudo systemctl start httpd",                   // Start Apache HTTP Server
+      "sudo systemctl enable httpd",                  // Enable Apache HTTP Server to start on boot
+      "echo '<html><body><h1>Hello, World!</h1></body></html>' | sudo tee /var/www/html/index.html" // Create HTML file
+    ]
+  }
+}
+
+// Security Group allowing HTTP access
+resource "aws_security_group" "http_sg" {
+  name        = "http_sg"
+  description = "Allow HTTP inbound traffic"
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+// Associate security group with EC2 instance
+resource "aws_instance" "example" {
+  security_groups = [aws_security_group.http_sg.name]
+}
+
+
+##### git to ec2
+
+provider "aws" {
+  region = "us-east-1"
+}
+
+resource "aws_vpc" "my_vpc" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_subnet" "my_subnet" {
+  vpc_id     = aws_vpc.my_vpc.id
+  cidr_block = "10.0.1.0/24"
+  map_public_ip_on_launch = true
+}
+
+resource "aws_internet_gateway" "my_igw" {
+  vpc_id = aws_vpc.my_vpc.id
+}
+
+resource "aws_route_table" "my_route_table" {
+  vpc_id = aws_vpc.my_vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.my_igw.id
+  }
+}
+
+resource "aws_route_table_association" "my_route_assoc" {
+  subnet_id      = aws_subnet.my_subnet.id
+  route_table_id = aws_route_table.my_route_table.id
+}
+
+resource "aws_security_group" "my_security_group" {
+  name        = "my-security-group"
+  description = "Allow SSH, HTTP, and HTTPS inbound traffic"
+  vpc_id      = aws_vpc.my_vpc.id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_instance" "my_instance" {
+  ami             = "ami-0c7217cdde317cfec"
+  instance_type   = "t2.micro"
+  subnet_id       = aws_subnet.my_subnet.id
+  security_groups = [aws_security_group.my_security_group.id]  
+
+  user_data = <<-EOF
+              #!/bin/bash
+              sudo apt-get update
+              sudo apt-get install -y apache2
+              sudo systemctl enable apache2
+              sudo systemctl start apache2
+              EOF
+}
+
+resource "aws_codedeploy_application" "example" {
+  name = "terraformap"  # Replace with your CodeDeploy application name
+}
+
+resource "aws_codedeploy_deployment_group" "example" {
+  app_name               = aws_codedeploy_application.example.name
+  deployment_group_name  = "terraform-dp"  # Replace with your deployment group name
+  service_role_arn       = "arn:aws:iam::123456789012:role/CodeDeployServiceRole"  # Update with your CodeDeploy service role ARN
+
+  auto_rollback_configuration {
+    enabled = true
+    events  = ["DEPLOYMENT_FAILURE"]
+  }
+
+  deployment_style {
+    deployment_option = "WITH_TRAFFIC_CONTROL"
+    deployment_type   = "BLUE_GREEN"
+  }
+
+  blue_green_deployment_config {
+    terminate_blue_instances_on_deployment_success {
+      action = "TERMINATE"
+      termination_wait_time_in_minutes = 5
+    }
+
+    deployment_ready_option {
+      action_on_timeout = "CONTINUE_DEPLOYMENT"
+    }
+  }
+}
+
+resource "aws_codepipeline" "example" {
+  name     = "example-pipeline"
+
+  role_arn = "arn:aws:iam::123456789012:role/service-role/AWSCodePipelineServiceRole-us-east-1"  # Update with your CodePipeline service role ARN
+
+  artifact_store {
+    location = "us-east-1"  # Update with your desired region
+    type     = "S3"
+  }
+
+  stage {
+    name = "Source"
+
+    action {
+      name             = "SourceAction"
+      category         = "Source"
+      owner            = "AWS"
+      provider         = "GitHub"
+      version          = "1"
+      output_artifacts = ["source_output"]
+
+      configuration = {
+        Owner             = "Mohankumnj"
+        Repo              = "https://github.com/Mohankumnj/index.html.git"
+        Branch            = "master"
+        OAuthToken        = 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  # Store your GitHub token securely, such as using a secrets manager
+        PollForSourceChanges = true
+      }
+    }
+  }
+
+  stage {
+    name = "Deploy"
+
+    action {
+      name            = "DeployAction"
+      category        = "Deploy"
+      owner           = "AWS"
+      provider        = "CodeDeploy"
+      input_artifacts = ["source_output"]
+      version         = "1"
+
+      configuration = {
+        ApplicationName          = terraformap 
+}		DeploymentGroupName      = terraform-dp
+      }
+    }
+  }
+}
